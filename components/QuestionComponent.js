@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 
-const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, handleNextQuestion, calculateLifeExpectancy  }) => {
+const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, handleNextQuestion, calculateLifeExpectancy }) => {
   const currentQuestion = questions[currentQuestionIndex];
-  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(null);
+  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(0);
   const [textValue, setTextValue] = useState('');
-  const [weights, setWeights] = useState([]); // Initialize weights as an empty array
 
 
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
@@ -19,26 +18,84 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
   };
 
   const handleAnswerSubmit = () => {
-    if (selectedAnswerIndex !== null) {
-      const selectedAnswer = currentQuestion.answers[selectedAnswerIndex];
-      const answerWeight = selectedAnswer.weight || 0; // Use the weight value from the selected answer, default to 0 if not provided
-      const value = selectedAnswer.value
-  
+    const selectedAnswer = currentQuestion.answers[selectedAnswerIndex];
+
+    if (selectedAnswer.type === 'numeric-input') {
+      const answerWeight = selectedAnswer.weight || 0;
       handleAnswer(currentQuestionIndex, {
         answerIndex: selectedAnswerIndex,
         value: textValue,
         weight: answerWeight,
       });
-    }
-  };
-  
+    } else if (selectedAnswer.type === 'button') {
+      const answerWeight = selectedAnswer.weight || 0;
+      handleAnswer(currentQuestionIndex, {
+        answerIndex: selectedAnswerIndex,
+        value: selectedAnswer.label,
+        weight: answerWeight,
+      });
+    } else if (selectedAnswer.type == 'conditional-numeric-input') {
+      const conditions = selectedAnswer.weight
+      const values = Object.values(conditions)
+      console.log(values)
 
+      var isValueLessThan = false
+      var lessThanValue = 0
+      var weightLessThan = 0
+
+      var isValueGreaterThan = false
+      var greaterThanValue = 0
+      var weightGreaterThan = 0
+
+      var isEqual = false
+      var equalValue = 0
+      var weightEqual = 0
+
+      var defaultValue = 0
+      
+      values.forEach((condition) => {
+        if('valueLessThan' in condition) {
+          isValueLessThan = true
+          lessThanValue = condition.valueLessThan
+          weightLessThan = condition.weight
+
+        } else if('valueGreaterThan' in condition) {
+          isValueGreaterThan = true
+          greaterThanValue = condition.valueGreaterThan
+          weightGreaterThan = condition.weight
+
+        } else if('valueEqual' in condition) {
+          isEqual = true
+        } else {
+          defaultValue = condition.weight
+        }
+      });
+
+      var answerWeight = defaultValue; // Set the default weight initially
+      if (isValueLessThan && Number(textValue) < lessThanValue) {
+        answerWeight = weightLessThan;
+      } else if (isValueGreaterThan && Number(textValue) > greaterThanValue) {
+        answerWeight = weightGreaterThan;
+      } else if (isEqual && Number(textValue) === equalValue) {
+        answerWeight = weightEqual;
+      }
+      
+      handleAnswer(currentQuestionIndex, {
+        answerIndex: selectedAnswerIndex,
+        value: selectedAnswer.label,
+        weight: answerWeight,
+      });
+    }
+    setSelectedAnswerIndex(0);
+    setTextValue('');
+
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.question}>{currentQuestion?.question}</Text>
       {currentQuestion?.answers.map((answer, index) => {
-        if (answer.type === 'input') {
+        if (answer.type === 'numeric-input' || answer.type === 'conditional-numeric-input') {
           return (
             <View key={index} style={styles.answerContainer}>
               <Text style={styles.answerLabel}>{answer.label}</Text>
@@ -60,7 +117,9 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
               style={[styles.answerButton, isSelected && styles.selectedAnswerButton]}
               onPress={() => handleAnswerSelection(index)}
             >
-              <Text style={[styles.answerButtonText, isSelected && styles.selectedAnswerButtonText]}>{answer.label}</Text>
+              <Text style={[styles.answerButtonText, isSelected && styles.selectedAnswerButtonText]}>
+                {answer.label}
+              </Text>
             </TouchableOpacity>
           );
         } else {

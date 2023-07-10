@@ -18,13 +18,21 @@ const QuestionScreen = () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'questions'));
         const fetchedQuestions = querySnapshot.docs.map((doc) => doc.data());
-        setQuestions(fetchedQuestions);
+
+
+        setQuestions(fetchedQuestions.sort(function(a,b) {
+          return a.id-b.id
+        }));
+
+
+        console.log(fetchedQuestions)
       } catch (error) {
         console.error('Error fetching questions:', error);
       }
     };
 
     fetchQuestions();
+
   }, []);
 
   const handleAnswer = (questionIndex, answer,value,weight) => {
@@ -46,8 +54,6 @@ const QuestionScreen = () => {
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex === questions.length - 1) {
-      // Last question reached, navigate to results screen
-      // Implement your navigation logic here
       console.log('Finish');
     } else {
       setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
@@ -55,20 +61,24 @@ const QuestionScreen = () => {
   };
 
   const calculateLifeExpectancy = async () => {
-    const gender = answers[0].answerIndex == 0 ? 'life-expectancy-m' : 'life-expectancy-w';
-    const age = answers[1].value;
+    const gender = answers[1].answerIndex == 0 ? 'life-expectancy-m' : 'life-expectancy-w';
+    const age = answers[0].value;
     console.log("age" + age)
 
     console.log(weights)
     const averageLe = await fetchLe(gender,age)
+    console.log(averageLe)
     
     var sumWeights = 0
 
     for(var i = 0;i<weights.length;i++) {
       console.log(weights[i])
-      sumWeights = sumWeights + weights[i]
+      sumWeights = sumWeights + parseInt(weights[i])
     }
-    var calculatedLe = parseFloat(averageLe) + parseFloat(sumWeights)
+
+    
+    var calculatedLe = parseFloat(averageLe) + parseFloat(sumWeights / 12)
+    console.log(sumWeights)
     setLifeExpectancy(calculatedLe);
     setShowResult(!showResult);
 
@@ -87,6 +97,8 @@ const QuestionScreen = () => {
       console.error(error)
     }
   }
+
+  
 
   return (
     <View style={styles.container}>
