@@ -41,6 +41,9 @@ const QuestionScreen = () => {
   const greenTriangleScale = new Animated.Value(0);
   const redTriangleScale = new Animated.Value(0);
 
+  const progressPercentage = (answers.length / questions.length) * 100;
+
+
   const handleAnswer = (questionIndex, answer,value,weight) => {
     // Update the answers array with the new answer
     const updatedAnswers = [...answers];
@@ -58,9 +61,11 @@ const QuestionScreen = () => {
       if(!downloadedTable) {
         getAgeTable();
         setDownloadTable(true);
+        setLifeExpectancy(averageLe)
+
       }
 
-      updateLifeExpectancy();
+      updateLifeExpectancy(answer.weight);
       setShowResult(true);
 
     }
@@ -95,14 +100,18 @@ const QuestionScreen = () => {
 
   }
 
-  const updateLifeExpectancy = async () => {
+  const updateLifeExpectancy = async (weight) => {
+
+
 
     var sumWeights = 0;
     for (var i = 0; i < weights.length; i++) {
       sumWeights = sumWeights + parseInt(weights[i]);
     }
 
-    var calculatedLe = parseFloat(averageLe) + parseFloat(sumWeights / 12);
+    console.log("anan" + lifeExpectancy)
+    console.log(weight)
+    var calculatedLe = parseFloat(lifeExpectancy) + parseFloat(weight / 12);
 
     setLifeExpectancy(calculatedLe);  
     console.log(lifeExpectancy)
@@ -113,6 +122,7 @@ const QuestionScreen = () => {
     const age = answers[0].value;
     const le = await fetchLe(gender, age);
     setAverageLe(le)
+    setLifeExpectancy(le)
   }
   const fetchLe = async (gender,age) => {
     try {
@@ -170,6 +180,10 @@ const QuestionScreen = () => {
       ) : (
         <Text>Loading questions...</Text>
       )}
+      {/* Progress bar */}
+      <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBar, { width: progressPercentage + '%' }]} />
+      </View>
     </View>
   );
 };
@@ -201,6 +215,18 @@ const styles = StyleSheet.create({
     borderStyle: 'solid',
     marginLeft: 5,
     marginRight: 5,
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 10,
+    backgroundColor: '#ccc',
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: 'green',
+    borderRadius: 5,
   },
 });
 
