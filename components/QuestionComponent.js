@@ -167,6 +167,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 5,
     marginBottom: 5,
+    
   },
   selectedAnswerButton: {
     backgroundColor: 'blue', // Customize the selected answer button style

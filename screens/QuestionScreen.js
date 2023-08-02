@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
 import { db } from '../services/firebase_service';
 import QuestionComponent from '../components/QuestionComponent';
+import { Animated, Easing } from 'react-native';
 
 const QuestionScreen = () => {
   const [questions, setQuestions] = useState([]);
@@ -11,6 +12,8 @@ const QuestionScreen = () => {
   const [lifeExpectancy, setLifeExpectancy] = useState(null);
   const [values, setValues] = useState([]);
   const [showResult, setShowResult] = useState(false);
+  const [averageLe, setAverageLe] = useState(null);
+  const [downloadedTable, setDownloadTable] = useState(false);
 
 
   useEffect(() => {
@@ -35,6 +38,9 @@ const QuestionScreen = () => {
 
   }, []);
 
+  const greenTriangleScale = new Animated.Value(0);
+  const redTriangleScale = new Animated.Value(0);
+
   const handleAnswer = (questionIndex, answer,value,weight) => {
     // Update the answers array with the new answer
     const updatedAnswers = [...answers];
@@ -47,8 +53,17 @@ const QuestionScreen = () => {
     setAnswers(updatedAnswers);
     setWeights(updatedWeights);
     setValues(updatedValues)
-    console.log(answer)
 
+    if(answers.length > 1) {
+      if(!downloadedTable) {
+        getAgeTable();
+        setDownloadTable(true);
+      }
+
+      updateLifeExpectancy();
+      setShowResult(true);
+
+    }
 
   };
 
@@ -63,11 +78,7 @@ const QuestionScreen = () => {
   const calculateLifeExpectancy = async () => {
     const gender = answers[1].answerIndex == 0 ? 'life-expectancy-m' : 'life-expectancy-w';
     const age = answers[0].value;
-    console.log("age" + age)
-
-    console.log(weights)
     const averageLe = await fetchLe(gender,age)
-    console.log(averageLe)
     
     var sumWeights = 0
 
@@ -80,10 +91,29 @@ const QuestionScreen = () => {
     var calculatedLe = parseFloat(averageLe) + parseFloat(sumWeights / 12)
     console.log(sumWeights)
     setLifeExpectancy(calculatedLe);
-    setShowResult(!showResult);
+
 
   }
 
+  const updateLifeExpectancy = async () => {
+
+    var sumWeights = 0;
+    for (var i = 0; i < weights.length; i++) {
+      sumWeights = sumWeights + parseInt(weights[i]);
+    }
+
+    var calculatedLe = parseFloat(averageLe) + parseFloat(sumWeights / 12);
+
+    setLifeExpectancy(calculatedLe);  
+    console.log(lifeExpectancy)
+  };
+
+  const getAgeTable = async () => {
+    const gender = answers[1].answerIndex === 0 ? 'life-expectancy-m' : 'life-expectancy-w';
+    const age = answers[0].value;
+    const le = await fetchLe(gender, age);
+    setAverageLe(le)
+  }
   const fetchLe = async (gender,age) => {
     try {
       const ref = doc(db,gender,age);
@@ -98,10 +128,35 @@ const QuestionScreen = () => {
     }
   }
 
+  const animateTriangles = (animatedValue) => {
+    Animated.sequence([
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      }),
+      Animated.timing(animatedValue, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+        easing: Easing.linear,
+      }),
+    ]).start();
+  };
+
   
 
   return (
     <View style={styles.container}>
+{showResult && (
+  <View style={styles.resultContainer}>
+    <Text style={styles.resultText}>Life Expectancy: {lifeExpectancy}</Text>
+    <Animated.View style={[styles.triangle, { transform: [{ scaleY: greenTriangleScale }] }]} />
+    <Animated.View style={[styles.triangle, { transform: [{ scaleY: redTriangleScale }] }]} />
+  </View>
+)}
+
       {questions.length > 0 ? (
         <>
           <QuestionComponent
@@ -111,11 +166,6 @@ const QuestionScreen = () => {
             currentQuestionIndex={answers.length}
             calculateLifeExpectancy={calculateLifeExpectancy}
           />
-          {showResult && (
-            <View style={styles.resultContainer}>
-              <Text style={styles.resultText}>Life Expectancy: {lifeExpectancy}</Text>
-            </View>
-          )}
         </>
       ) : (
         <Text>Loading questions...</Text>
@@ -134,14 +184,24 @@ const styles = StyleSheet.create({
     marginTop: 20,
     padding: 10,
     borderRadius: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   resultText: {
     fontSize: 18,
     fontWeight: 'bold',
-    textAlign: 'center',
+    marginRight: 10,
+  },
+  triangle: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderBottomWidth: 10,
+    borderStyle: 'solid',
+    marginLeft: 5,
+    marginRight: 5,
   },
 });
-
-
 
 export default QuestionScreen;
