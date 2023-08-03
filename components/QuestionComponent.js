@@ -5,20 +5,33 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
   const currentQuestion = questions[currentQuestionIndex];
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(0);
   const [inputValues, setInputValues] = useState(Array(currentQuestion.answers.length).fill(''));
+  const [isInputValid, setIsInputValid] = useState(false);
+
 
 
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   const handleAnswerSelection = (answerIndex) => {
-    setSelectedAnswerIndex(answerIndex);
+    if (selectedAnswerIndex === answerIndex) {
+      setSelectedAnswerIndex(0);
+      setIsInputValid(false); // Clear input validation state
+    } else {
+      setSelectedAnswerIndex(answerIndex);
+      setIsInputValid(true); // Set input validation state to true when a button is selected
+    }
   };
 
   const handleTextChange = (text, answerIndex) => {
     // Update the input value for the specific answer index
     const updatedInputValues = [...inputValues];
     updatedInputValues[answerIndex] = text;
+
+    const isValid = text.trim().length > 0; // You can add your own validation rules if needed
+    setIsInputValid(isValid);
     setInputValues(updatedInputValues);
+
   };
+
   const handleAnswerSubmit = () => {
     const selectedAnswer = currentQuestion.answers[selectedAnswerIndex];
   
@@ -90,14 +103,16 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
       });
     }
   
-    setSelectedAnswerIndex(0);
+    setIsInputValid(false);
     setInputValues(Array(currentQuestion.answers.length).fill('')); // Clear the input values
+
   
   };
 
   
   return (
     <View style={styles.container}>
+     <View style={styles.card}>
       <Text style={styles.question}>{currentQuestion?.question}</Text>
       {currentQuestion?.answers.map((answer, index) => {
         if (answer.type === 'numeric-input' || answer.type === 'conditional-numeric-input') {
@@ -131,28 +146,64 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
           return null; // Invalid answer type, ignore it
         }
       })}
-
+         <View style={styles.fixedButtonsContainer}>
       {isLastQuestion ? (
-        <TouchableOpacity style={styles.nextButton} onPress={calculateLifeExpectancy}>
+        <TouchableOpacity
+          style={[styles.nextButton, !isInputValid && { backgroundColor: '#ccc' }]} // Disable the button based on input validity
+          onPress={calculateLifeExpectancy}
+          disabled={!isInputValid} // Disable the button based on input validity
+        >
           <Text style={styles.nextButtonText}>Calculate Life Expectancy</Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity style={styles.nextButton} onPress={handleAnswerSubmit}>
+        <TouchableOpacity
+          style={[styles.nextButton, !isInputValid && { backgroundColor: '#ccc' }]} // Disable the button based on input validity
+          onPress={handleAnswerSubmit}
+          disabled={!isInputValid} // Disable the button based on input validity
+        >
           <Text style={styles.nextButtonText}>Next</Text>
         </TouchableOpacity>
       )}
     </View>
+    </View>
+    </View>
+    
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     marginBottom: 20,
+    position: 'relative',
+    width: '80%',
+    height: '80%',
+    alignItems: 'center',
+    
+  },
+  card: {
+    position: 'relative', 
+    width: '90%',
+    minHeight: 400, 
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   question: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
+  },
+  fixedButtonsContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   answerContainer: {
     marginBottom: 10,
@@ -175,14 +226,14 @@ const styles = StyleSheet.create({
     
   },
   selectedAnswerButton: {
-    backgroundColor: 'blue', // Customize the selected answer button style
+    backgroundColor: 'blue',
   },
   answerButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
   selectedAnswerButtonText: {
-    color: 'white', // Customize the selected answer button text color
+    color: 'white', 
   },
   nextButton: {
     backgroundColor: 'lightgreen',

@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
 import { db } from '../services/firebase_service';
 import QuestionComponent from '../components/QuestionComponent';
 import { Animated, Easing } from 'react-native';
 
-const QuestionScreen = () => {
+const QuestionScreen = ({navigation}) => {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [weights, setWeights] = useState([]); // Initialize weights as an empty array
   const [lifeExpectancy, setLifeExpectancy] = useState(null);
   const [values, setValues] = useState([]);
   const [showResult, setShowResult] = useState(false);
+  const [showLifeExpectancy, setShowLifeExpectancy] = useState(false);
   const [averageLe, setAverageLe] = useState(null);
   const [downloadedTable, setDownloadTable] = useState(false);
 
@@ -37,7 +38,7 @@ const QuestionScreen = () => {
     fetchQuestions();
 
   }, []);
-
+ // animations
   const greenTriangleScale = new Animated.Value(0);
   const redTriangleScale = new Animated.Value(0);
 
@@ -64,9 +65,9 @@ const QuestionScreen = () => {
         setLifeExpectancy(averageLe)
 
       }
+      setShowLifeExpectancy(true)
 
       updateLifeExpectancy(answer.weight);
-      setShowResult(true);
 
     }
 
@@ -81,23 +82,7 @@ const QuestionScreen = () => {
   };
 
   const calculateLifeExpectancy = async () => {
-    const gender = answers[1].answerIndex == 0 ? 'life-expectancy-m' : 'life-expectancy-w';
-    const age = answers[0].value;
-    const averageLe = await fetchLe(gender,age)
-    
-    var sumWeights = 0
-
-    for(var i = 0;i<weights.length;i++) {
-      console.log(weights[i])
-      sumWeights = sumWeights + parseInt(weights[i])
-    }
-
-    
-    var calculatedLe = parseFloat(averageLe) + parseFloat(sumWeights / 12)
-    console.log(sumWeights)
-    setLifeExpectancy(calculatedLe);
-
-
+    setShowResult(true);
   }
 
   const updateLifeExpectancy = async (weight) => {
@@ -109,8 +94,6 @@ const QuestionScreen = () => {
       sumWeights = sumWeights + parseInt(weights[i]);
     }
 
-    console.log("anan" + lifeExpectancy)
-    console.log(weight)
     var calculatedLe = parseFloat(lifeExpectancy) + parseFloat(weight / 12);
 
     setLifeExpectancy(calculatedLe);  
@@ -159,16 +142,15 @@ const QuestionScreen = () => {
 
   return (
     <View style={styles.container}>
-{showResult && (
+{showLifeExpectancy && (
   <View style={styles.resultContainer}>
-    <Text style={styles.resultText}>Life Expectancy: {lifeExpectancy}</Text>
+    <Text style={styles.resultText}>Life Expectancy: {Math.round(lifeExpectancy)}</Text>
     <Animated.View style={[styles.triangle, { transform: [{ scaleY: greenTriangleScale }] }]} />
     <Animated.View style={[styles.triangle, { transform: [{ scaleY: redTriangleScale }] }]} />
   </View>
 )}
-
-      {questions.length > 0 ? (
-        <>
+     {questions.length > 0 ? (
+              <>
           <QuestionComponent
             questions={questions}
             handleAnswer={handleAnswer}
@@ -184,6 +166,32 @@ const QuestionScreen = () => {
       <View style={styles.progressBarContainer}>
         <View style={[styles.progressBar, { width: progressPercentage + '%' }]} />
       </View>
+      {/* Modal Popup */}
+      <Modal visible={showResult} animationType="fade" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.resultText}>Life Expectancy: {lifeExpectancy}</Text>
+            <TouchableOpacity
+              style={styles.popupButton}
+              onPress={() => {
+                setShowResult(false);
+                navigation.navigate('Question')
+              }}
+            >
+              <Text style={styles.popupButtonText}>Start Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.popupButton}
+              onPress={() => {
+                setShowResult(false);
+                navigation.navigate('Welcome'); // Assuming you have 'navigation' available in your props
+              }}
+            >
+              <Text style={styles.popupButtonText}>Go to Home Screen</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -217,7 +225,8 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   progressBarContainer: {
-    width: '100%',
+    position: 'relative',
+    width:'80%',
     height: 10,
     backgroundColor: '#ccc',
     borderRadius: 5,
@@ -227,6 +236,35 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: 'green',
     borderRadius: 5,
+  },
+
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  resultText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  popupButton: {
+    backgroundColor: 'lightblue',
+    padding: 10,
+    alignItems: 'center',
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  popupButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
