@@ -87,26 +87,22 @@ const QuestionScreen = ({navigation}) => {
 
   const updateLifeExpectancy = async (weight) => {
 
-
-
-    var sumWeights = 0;
-    for (var i = 0; i < weights.length; i++) {
-      sumWeights = sumWeights + parseInt(weights[i]);
-    }
-
     var calculatedLe = parseFloat(lifeExpectancy) + parseFloat(weight / 12);
 
     setLifeExpectancy(calculatedLe);  
     console.log(lifeExpectancy)
+    console.log(answers)
   };
 
   const getAgeTable = async () => {
     const gender = answers[1].answerIndex === 0 ? 'life-expectancy-m' : 'life-expectancy-w';
-    const age = answers[0].value;
+    const age = answers[0].value.toString();
+    console.log("age: " + age)
     const le = await fetchLe(gender, age);
-    setAverageLe(le)
-    setLifeExpectancy(le)
+    setAverageLe(le+parseInt(age))
+    setLifeExpectancy(le+parseInt(age))
   }
+
   const fetchLe = async (gender,age) => {
     try {
       const ref = doc(db,gender,age);
@@ -119,6 +115,13 @@ const QuestionScreen = ({navigation}) => {
     } catch(error) {
       console.error(error)
     }
+  }
+
+  const calculateAge = (age) => {
+    var today = new Date();
+    var age = today.getFullYear() - age.getFullYear();
+    console.log(age)
+    return age;
   }
 
   const animateTriangles = (animatedValue) => {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet,Pressable,Platform} from 'react-native';
+import DateTimePicker from "@react-native-community/datetimepicker"
 
 const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, handleNextQuestion, calculateLifeExpectancy }) => {
   const currentQuestion = questions[currentQuestionIndex];
@@ -7,7 +8,9 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
   const [inputValues, setInputValues] = useState(Array(currentQuestion.answers.length).fill(''));
   const [isInputValid, setIsInputValid] = useState(false);
 
-
+  const [date, setDate] = useState(new Date())
+  const [showPicker, setShowPicker] = useState(false);
+  const [dateOfBirth, setDateOfBirth] = useState("");
 
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
@@ -106,10 +109,60 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
     setIsInputValid(false);
     setInputValues(Array(currentQuestion.answers.length).fill('')); // Clear the input values
 
-  
   };
 
   
+
+  const toggleDatepicker = () => {
+    console.log("yarra")
+    setShowPicker(!showPicker);
+  }
+  
+  const onChange = ({type}, selectedDate) => {
+    if (type == "set") {
+      const currentDate = selectedDate;
+      setDate(currentDate);
+
+      if (Platform.OS === "android") {
+        toggleDatepicker();
+        setDateOfBirth(currentDate.toDateString());
+        console.log(date)
+      }
+
+
+    } else {
+      toggleDatepicker();
+    }
+
+    var today = new Date();
+    var age = today.getFullYear() - selectedDate.getFullYear()
+    if(age < 0) {
+      setIsInputValid(false);
+    } else {
+      setIsInputValid(true);
+    }
+    const updatedInputValues = [...inputValues];
+    updatedInputValues[0] = age;
+    console.log(updatedInputValues)
+
+    handleAnswer(0, {
+      answerIndex: 0,
+      value: age,
+      weight: 0,
+    });
+  }
+
+  const handleDateChange = (newDate, answerIndex) => {
+    const updatedInputValues = [...inputValues];
+    updatedInputValues[answerIndex] = newDate.toISOString(); // Convert to ISO string format
+  
+    const isValid = newDate !== null; // Basic validation, check for a valid date
+    setIsInputValid(isValid);
+    setInputValues(updatedInputValues);
+  
+    setShowPicker(false); // Hide the date picker
+  };
+
   return (
     <View style={styles.container}>
      <View style={styles.card}>
@@ -130,7 +183,6 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
           );
         } else if (answer.type === 'button') {
           const isSelected = index === selectedAnswerIndex;
-
           return (
             <TouchableOpacity
               key={index}
@@ -142,7 +194,35 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
               </Text>
             </TouchableOpacity>
           );
-        } else {
+          
+        } else if (answer.type === 'date-picker') {
+          return (
+            <View key={index}>
+              {/* Render Pressable TextInput */}
+              {!showPicker && (
+              <Pressable onPress={() => toggleDatepicker()}>
+                <TextInput
+                  style={styles.answerButtonText}
+                  placeholder="Select date"
+                  value={dateOfBirth}
+                  onChangeText={setDateOfBirth}
+                  editable={false} // Prevent direct input
+                />
+              </Pressable>
+      )}
+              {/* Render DateTimePicker */}
+              {showPicker && (
+                <DateTimePicker
+                  mode="date"
+                  display="spinner"
+                  value={date}//{inputValues[index] ? new Date(inputValues[index]) : new Date()}
+                  onChange={onChange}
+                />
+              )}
+            </View>
+          );
+        }
+        else {
           return null; // Invalid answer type, ignore it
         }
       })}
