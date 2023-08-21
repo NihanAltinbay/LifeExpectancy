@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { doc, getDoc, getDocs, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs,addDoc, collection } from 'firebase/firestore';
 import { db } from '../services/firebase_service';
 import QuestionComponent from '../components/QuestionComponent';
 import { Animated, Easing } from 'react-native';
@@ -8,28 +8,29 @@ import { Animated, Easing } from 'react-native';
 const QuestionScreen = ({navigation}) => {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
-  const [weights, setWeights] = useState([]); // Initialize weights as an empty array
-  const [lifeExpectancy, setLifeExpectancy] = useState(null);
+  const [weights, setWeights] = useState([]); 
+  const [lifeExpectancy, setLifeExpectancy] = useState(0);
   const [values, setValues] = useState([]);
   const [showResult, setShowResult] = useState(false);
   const [showLifeExpectancy, setShowLifeExpectancy] = useState(false);
   const [averageLe, setAverageLe] = useState(null);
   const [downloadedTable, setDownloadTable] = useState(false);
+  var today = new Date();
+
 
 
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'questions'));
+        const querySnapshot = await getDocs(collection(db, 'questions_prio'));
         const fetchedQuestions = querySnapshot.docs.map((doc) => doc.data());
-
 
         setQuestions(fetchedQuestions.sort(function(a,b) {
           return a.id-b.id
         }));
 
 
-        console.log(fetchedQuestions)
+      //  console.log(fetchedQuestions)
       } catch (error) {
         console.error('Error fetching questions:', error);
       }
@@ -53,7 +54,7 @@ const QuestionScreen = ({navigation}) => {
     updatedWeights[questionIndex] = answer.weight;
     const updatedValues = [...values]
     updatedValues[questionIndex] = answer.value
-    
+
     setAnswers(updatedAnswers);
     setWeights(updatedWeights);
     setValues(updatedValues)
@@ -62,7 +63,7 @@ const QuestionScreen = ({navigation}) => {
       if(!downloadedTable) {
         getAgeTable();
         setDownloadTable(true);
-        setLifeExpectancy(averageLe)
+        // setLifeExpectancy(averageLe)
 
       }
       setShowLifeExpectancy(true)
@@ -70,37 +71,55 @@ const QuestionScreen = ({navigation}) => {
       updateLifeExpectancy(answer.weight);
 
     }
-
   };
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex === questions.length - 1) {
-      console.log('Finish');
     } else {
       setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
     }
   };
 
   const calculateLifeExpectancy = async () => {
+    var sumWeights = parseFloat(averageLe);
+    for (var i = 0; i < weights.length; i++) {
+      sumWeights = sumWeights + parseInt(weights[i])/12;
+    }
+    setLifeExpectancy(sumWeights)
     setShowResult(true);
+    writeResultsToDb(sumWeights);
+
+
   }
 
   const updateLifeExpectancy = async (weight) => {
 
     var calculatedLe = parseFloat(lifeExpectancy) + parseFloat(weight / 12);
 
-    setLifeExpectancy(calculatedLe);  
-    console.log(lifeExpectancy)
-    console.log(answers)
+    // setLifeExpectancy(calculatedLe);  
   };
 
   const getAgeTable = async () => {
     const gender = answers[1].answerIndex === 0 ? 'life-expectancy-m' : 'life-expectancy-w';
     const age = answers[0].value.toString();
-    console.log("age: " + age)
     const le = await fetchLe(gender, age);
     setAverageLe(le+parseInt(age))
-    setLifeExpectancy(le+parseInt(age))
+  }
+
+  const writeResultsToDb = async (le) => {
+    const userAnswers = {
+      answers: answers,
+      average_le_at_this_age: averageLe,
+      calculated_le: le,
+      time_stamp: today
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, 'user-answers'), userAnswers);
+      console.log('Document written with ID: ', docRef.id);
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   const fetchLe = async (gender,age) => {
@@ -109,7 +128,6 @@ const QuestionScreen = ({navigation}) => {
       const docSnap = await getDoc(ref);
       if(docSnap.exists()) {
         const averageLe = docSnap.data()['average_le']
-        console.log("avLe:" + averageLe);;
         return averageLe;
       }
     } catch(error) {
@@ -118,9 +136,7 @@ const QuestionScreen = ({navigation}) => {
   }
 
   const calculateAge = (age) => {
-    var today = new Date();
     var age = today.getFullYear() - age.getFullYear();
-    console.log(age)
     return age;
   }
 
@@ -145,13 +161,6 @@ const QuestionScreen = ({navigation}) => {
 
   return (
     <View style={styles.container}>
-{showLifeExpectancy && (
-  <View style={styles.resultContainer}>
-    <Text style={styles.resultText}>Life Expectancy: {Math.round(lifeExpectancy)}</Text>
-    <Animated.View style={[styles.triangle, { transform: [{ scaleY: greenTriangleScale }] }]} />
-    <Animated.View style={[styles.triangle, { transform: [{ scaleY: redTriangleScale }] }]} />
-  </View>
-)}
      {questions.length > 0 ? (
               <>
           <QuestionComponent
@@ -173,8 +182,13 @@ const QuestionScreen = ({navigation}) => {
       <Modal visible={showResult} animationType="fade" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.resultText}>Life Expectancy: {lifeExpectancy}</Text>
-            <TouchableOpacity
+            <Text style={styles.resultText}>Deine Lebenserwartung: {Math.round(lifeExpectancy)}</Text>
+            <Text style={styles.resultTextAverage}>In Deinem Alter leben die Menschen durchschnittlich bis zu {Math.round(averageLe)} Jahre.</Text>
+            <Text style={styles.resultTextDisclaimer}>Hinweis: Die berechnete Lebenserwartung ist eine Schätzung und entspricht möglicherweise nicht den tatsächlichen Ergebnissen. 
+            Sie basiert auf den angegebenen Eingaben und allgemeinen statistischen Daten.</Text>
+
+
+            {/* <TouchableOpacity
               style={styles.popupButton}
               onPress={() => {
                 setShowResult(false);
@@ -182,15 +196,15 @@ const QuestionScreen = ({navigation}) => {
               }}
             >
               <Text style={styles.popupButtonText}>Start Again</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity
               style={styles.popupButton}
               onPress={() => {
                 setShowResult(false);
-                navigation.navigate('Welcome'); // Assuming you have 'navigation' available in your props
+                navigation.navigate('Startseite');
               }}
             >
-              <Text style={styles.popupButtonText}>Go to Home Screen</Text>
+              <Text style={styles.popupButtonText}>Zum Startbildschirm</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -215,6 +229,17 @@ const styles = StyleSheet.create({
   resultText: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginRight: 10,
+  },
+  resultTextAverage: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  resultTextDisclaimer: {
+    fontSize: 10,
+    fontStyle: 'italic', 
+    color: '#999',
     marginRight: 10,
   },
   triangle: {
