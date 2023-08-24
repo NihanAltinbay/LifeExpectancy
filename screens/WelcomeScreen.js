@@ -12,7 +12,7 @@ const WelcomeScreen = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Willkommen!</Text>
       <Text style={styles.explanation}>
-        Berechne Deine Lebenserwartung, indem Du ein paar einfache Fragen beantwortest.
+        Berechne Deine Lebenserwartung, indem Du ein paar Fragen beantwortest.
       </Text>
       <TouchableOpacity style={styles.button} onPress={goToQuestionScreen}>
         <Text style={styles.buttonText}>Los geht's!</Text>
