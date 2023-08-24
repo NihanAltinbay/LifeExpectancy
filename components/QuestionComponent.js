@@ -3,7 +3,10 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Pressable, Platfor
 import DateTimePicker from "@react-native-community/datetimepicker"
 
 const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, handleNextQuestion, calculateLifeExpectancy }) => {
+  // Extract the current question based on the current question index
   const currentQuestion = questions[currentQuestionIndex];
+
+  // State variables for managing user input and selections
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(-1);
   const [inputValues, setInputValues] = useState(Array(currentQuestion.answers.length).fill(''));
   const [isInputValid, setIsInputValid] = useState(false);
@@ -16,7 +19,8 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
   const [bmiValue, setBmi] = useState(0);
   const [gender, setGender] = useState("");
   const [age, setAge] = useState(0);
-  const PRIORITY_QUESTION_INDEX = 23;
+
+  const PRIORITY_QUESTION_INDEX = 23; // Priority question index
 
 
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
@@ -265,6 +269,7 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
     return bmiweight;
   }
 
+  // Render the component
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -356,6 +361,7 @@ const QuestionComponent = ({ questions, currentQuestionIndex, handleAnswer, hand
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     marginBottom: 20,

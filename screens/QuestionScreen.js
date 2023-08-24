@@ -3,9 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'reac
 import { doc, getDoc, getDocs,addDoc, collection } from 'firebase/firestore';
 import { db } from '../services/firebase_service';
 import QuestionComponent from '../components/QuestionComponent';
-import { Animated, Easing } from 'react-native';
 
 const QuestionScreen = ({navigation}) => {
+  // State variables
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [weights, setWeights] = useState([]); 
@@ -18,7 +18,7 @@ const QuestionScreen = ({navigation}) => {
   var today = new Date();
 
 
-
+  // Fetch questions from Firestore on component mount
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -39,11 +39,13 @@ const QuestionScreen = ({navigation}) => {
     fetchQuestions();
 
   }, []);
- // animations
+ /* TODO: animations
   const greenTriangleScale = new Animated.Value(0);
   const redTriangleScale = new Animated.Value(0);
+*/
 
-  const progressPercentage = (answers.length / questions.length) * 100;
+
+  const progressPercentage = (answers.length / questions.length) * 100; // Progress bar
 
 
   const handleAnswer = (questionIndex, answer,value,weight) => {
@@ -100,7 +102,7 @@ const QuestionScreen = ({navigation}) => {
   };
 
   const getAgeTable = async () => {
-    const gender = answers[1].answerIndex === 0 ? 'life-expectancy-m' : 'life-expectancy-w';
+    const gender = answers[1].answerIndex === 0 ? 'life-expectancy-m' : 'life-expectancy-w'; 
     const age = answers[0].value.toString();
     const le = await fetchLe(gender, age);
     setAverageLe(le+parseInt(age))
@@ -113,7 +115,6 @@ const QuestionScreen = ({navigation}) => {
       calculated_le: le,
       time_stamp: today
     };
-
     try {
       const docRef = await addDoc(collection(db, 'user-answers'), userAnswers);
       console.log('Document written with ID: ', docRef.id);
@@ -140,6 +141,7 @@ const QuestionScreen = ({navigation}) => {
     return age;
   }
 
+  /* TODO: Animations 
   const animateTriangles = (animatedValue) => {
     Animated.sequence([
       Animated.timing(animatedValue, {
@@ -156,9 +158,10 @@ const QuestionScreen = ({navigation}) => {
       }),
     ]).start();
   };
+  */
 
   
-
+ // Rendering the component
   return (
     <View style={styles.container}>
      {questions.length > 0 ? (
@@ -187,16 +190,6 @@ const QuestionScreen = ({navigation}) => {
             <Text style={styles.resultTextDisclaimer}>Hinweis: Die berechnete Lebenserwartung ist eine Schätzung und entspricht möglicherweise nicht den tatsächlichen Ergebnissen. 
             Sie basiert auf den angegebenen Eingaben und allgemeinen statistischen Daten.</Text>
 
-
-            {/* <TouchableOpacity
-              style={styles.popupButton}
-              onPress={() => {
-                setShowResult(false);
-                navigation.navigate('Question')
-              }}
-            >
-              <Text style={styles.popupButtonText}>Start Again</Text>
-            </TouchableOpacity> */}
             <TouchableOpacity
               style={styles.popupButton}
               onPress={() => {
@@ -213,6 +206,7 @@ const QuestionScreen = ({navigation}) => {
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
